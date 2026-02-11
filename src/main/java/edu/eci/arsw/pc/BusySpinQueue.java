@@ -2,6 +2,7 @@ package edu.eci.arsw.pc;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.concurrent.locks.LockSupport;
 
 /** Intencionalmente incorrecta: usa busy-wait (alto CPU). */
 public final class BusySpinQueue<T> {
@@ -13,28 +14,50 @@ public final class BusySpinQueue<T> {
   }
 
   public void put(T item) {
-    // spin hasta que haya espacio
+    // intenta insertar; si está lleno, usa backoff adaptativo
+    int spins = 0;
     while (true) {
-      if (q.size() < capacity) {
-        q.addLast(item);
-        return;
+      synchronized (this) {
+        if (q.size() < capacity) {
+          q.addLast(item);
+          return;
+        }
       }
-      // espera activa
-      Thread.onSpinWait();
+      // backoff: spin -> yield -> parkNanos
+      if (spins < 100) {
+        Thread.onSpinWait();
+      } else if (spins < 1000) {
+        Thread.yield();
+      } else {
+        LockSupport.parkNanos(1_000_000L); // 1 ms
+      }
+      spins++;
     }
   }
 
   public T take() {
-    // spin hasta que haya elementos
+    // intenta extraer; si está vacío, usa backoff adaptativo
+    int spins = 0;
     while (true) {
-      T v = q.pollFirst();
-      if (v != null)
-        return v;
-      Thread.onSpinWait();
+      synchronized (this) {
+        T v = q.pollFirst();
+        if (v != null)
+          return v;
+      }
+      if (spins < 100) {
+        Thread.onSpinWait();
+      } else if (spins < 1000) {
+        Thread.yield();
+      } else {
+        LockSupport.parkNanos(1_000_000L);
+      }
+      spins++;
     }
   }
 
   public int size() {
-    return q.size();
+    synchronized (this) {
+      return q.size();
+    }
   }
 }
