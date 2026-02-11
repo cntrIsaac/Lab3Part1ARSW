@@ -7,7 +7,7 @@
  ![](img/mode_monitor.png)
 
 
-1. Productor lento / Consumidor rápido
+### 1. Productor lento / Consumidor rápido
 
 Cuando el productor genera elementos lentamente y el consumidor procesa muy rápido, el buffer se queda vacío con frecuencia.
 
@@ -16,7 +16,7 @@ Cuando el productor genera elementos lentamente y el consumidor procesa muy ráp
 
   El modo monitor implementa espera bloqueante eficiente, mientras que spin utiliza espera activa, generando potencial desperdicio de CPU cuando el buffer está vacío.
 
-2. Productor rápido / Consumidor lento (capacidad pequeña)
+### 2. Productor rápido / Consumidor lento (capacidad pequeña)
 
 Cuando el productor es más rápido y la capacidad del buffer es pequeña (4 u 8), el buffer se llena rápidamente.
 
@@ -25,7 +25,7 @@ Cuando el productor es más rápido y la capacidad del buffer es pequeña (4 u 8
 
   En mode=monitor, el productor libera el CPU al bloquearse mediante mecanismos de sincronización, mientras que en mode=spin permanece activo evaluando repetidamente la condición de disponibilidad.
 
-3. Comparación CPU
+### 3. Comparación CPU
 
 Aquí está lo más importante para tu conclusión.
 
