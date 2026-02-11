@@ -23,10 +23,16 @@ public final class PCApp {
         mode, producers, consumers, capacity, prodDelay, consDelay, duration);
 
     Object queue;
-    if ("spin".equalsIgnoreCase(mode))
+    if ("spin".equalsIgnoreCase(mode)) {
       queue = new BusySpinQueue<Long>(capacity);
-    else
+    } else if ("monitor".equalsIgnoreCase(mode) || "bounded".equalsIgnoreCase(mode)
+        || "blocking".equalsIgnoreCase(mode)) {
+      // use the monitor-based bounded buffer which respects capacity without busy-wait
       queue = new BoundedBuffer<Long>(capacity);
+    } else {
+      // default to bounded buffer for any other/unknown mode
+      queue = new BoundedBuffer<Long>(capacity);
+    }
 
     var exec = Executors.newVirtualThreadPerTaskExecutor();
     List<Producer> prodList = new ArrayList<>();
@@ -51,9 +57,14 @@ public final class PCApp {
     consList.forEach(Consumer::stop);
     exec.close();
 
-    System.out.printf("Produced=%d Consumed=%d QueueSize=%d%n",
-        produced.get(), consumed.get(),
-        queue instanceof BusySpinQueue<?> sp ? sp.size() : ((BoundedBuffer<?>) queue).size());
+    int qsize = queue instanceof BusySpinQueue<?> sp ? sp.size() : ((BoundedBuffer<?>) queue).size();
+    System.out.printf("Produced=%d Consumed=%d QueueSize=%d (capacity=%d)%n",
+        produced.get(), consumed.get(), qsize, capacity);
+    if (qsize > capacity) {
+      System.out.println("ERROR: queue size exceeded capacity!");
+    } else {
+      System.out.println("Capacity respected (no busy-wait required).");
+    }
 
     System.out.println("TIP: Compare CPU with VisualVM: spin (busy-wait) vs monitor (wait/notify).");
   }
