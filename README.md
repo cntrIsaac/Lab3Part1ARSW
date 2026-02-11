@@ -59,3 +59,11 @@ Aquí está lo más importante para tu conclusión.
 El esquema adoptado opera en tres niveles progresivos: inicialmente se realiza spin activo mediante Thread.onSpinWait(), posteriormente se cede el procesador con Thread.yield(), y finalmente, si la condición persiste, el hilo entra en espera temporal utilizando LockSupport.parkNanos().
 
 Este enfoque conserva baja latencia cuando la contención es breve (por ejemplo, cuando productor y consumidor están desfasados mínimamente), pero reduce significativamente el consumo de CPU en escenarios donde la espera es prolongada, como en el caso de productor lento y consumidor rápido. La principal contrapartida es una ligera penalización en la latencia de reanudación bajo condiciones de espera extendida.
+
+3. Implementación para usar CPU eficientemente con productor rápido y consumidor lento con límite de stock, garantizando que el límite se respete sin espera activa y válida CPU con un stock pequeño.
+
+- Se actualizó la aplicación incorporando un nuevo modo de ejecución denominado “bounded” o “blocking”, el cual instancia la clase BoundedBuffer en lugar de BusySpinQueue. En este modo, los métodos put() y take() utilizan el mecanismo de sincronización basado en wait()/notify(), garantizando el respeto estricto de la capacidad máxima del buffer sin recurrir a espera activa.
+
+Adicionalmente, al finalizar la ejecución, PCApp consulta el tamaño final de la cola y lo compara con la capacidad configurada. En caso de detectarse una violación del límite, se muestra un mensaje de error, lo que facilita la validación experimental del comportamiento bajo configuraciones de stock reducido (por ejemplo, capacity=4, prodDelayMs=1, consDelayMs=50).
+
+Este enfoque permite comprobar que el límite de capacidad se mantiene correctamente y que el consumo de CPU permanece bajo en comparación con el modo spin, donde la espera activa incrementa innecesariamente el uso del procesador en escenarios de alta contención.
